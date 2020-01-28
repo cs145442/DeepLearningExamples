@@ -10,7 +10,7 @@ else
 fi
 
 # Start TRTIS server in detached state
-nvidia-docker run -d --rm \
+docker run --runtime=nvidia -d --rm \
    --shm-size=1g \
    --ulimit memlock=-1 \
    --ulimit stack=67108864 \

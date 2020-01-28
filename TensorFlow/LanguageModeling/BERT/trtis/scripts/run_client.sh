@@ -21,7 +21,8 @@ trtis_model_name=${5:-"bert"}
 BERT_DIR=${6:-"data/download/google_pretrained_weights/uncased_L-24_H-1024_A-16"}
 squad_version=${7:-"1.1"}
 
-export SQUAD_DIR=data/download/squad/v${squad_version}
+# export SQUAD_DIR=data/download/squad/v${squad_version}
+export SQUAD_DIR=/opt/luciapp/data/bert-data/
 if [ "$squad_version" = "1.1" ] ; then
     version_2_with_negative="False"
 else
@@ -31,7 +32,7 @@ fi
 echo "Squad directory set as " $SQUAD_DIR
 if [ ! -d "$SQUAD_DIR" ] ; then
    echo "Error! $SQUAD_DIR directory missing. Please mount SQuAD dataset."
-   exit -1
+#   exit -1
 fi
 
 bash scripts/docker/launch.sh \
