@@ -58,7 +58,7 @@ ckpt_str=${init_checkpoint//\//-}
 printf -v TAG "tf_bert_finetuning_squad_%s_inf_%s_gbs%d_ckpt_%s" "$bert_model" "$precision" $batch_size "$ckpt_str"
 DATESTAMP=`date +'%y%m%d%H%M%S'`
 #Edit to save logs & checkpoints in a different directory
-RESULTS_DIR=/results
+export RESULTS_DIR=/results
 LOGFILE=$RESULTS_DIR/$TAG.$DATESTAMP.log
 printf "Logs written to %s\n" "$LOGFILE"
 
