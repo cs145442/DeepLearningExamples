@@ -20,8 +20,9 @@ from run_squad import *
 import numpy as np
 import tqdm
 
+from utils.create_squad_data import SquadExample
+
 # Set this to either 'label_ids' for Google bert or 'unique_ids' for JoC
-from TensorFlow.LanguageModeling.BERT.utils.create_squad_data import SquadExample
 
 label_id_key = "unique_ids"
 
