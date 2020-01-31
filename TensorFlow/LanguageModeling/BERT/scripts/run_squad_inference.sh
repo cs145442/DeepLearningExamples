@@ -24,6 +24,8 @@ doc_stride=${6:-"128"}
 bert_model=${7:-"large"}
 squad_version=${8:-"1.1"}
 
+export RESULT_DIR=results
+
 if [ "$bert_model" = "large" ] ; then
     export BERT_DIR=data/download/google_pretrained_weights/uncased_L-24_H-1024_A-16
 else
@@ -56,9 +58,9 @@ fi
 
 ckpt_str=${init_checkpoint//\//-}
 printf -v TAG "tf_bert_finetuning_squad_%s_inf_%s_gbs%d_ckpt_%s" "$bert_model" "$precision" $batch_size "$ckpt_str"
-DATESTAMP=`date +'%y%m%d%H%M%S'`
+DATESTAMP="RANDOM"
 #Edit to save logs & checkpoints in a different directory
-export RESULTS_DIR=/results
+RESULTS_DIR=results
 LOGFILE=$RESULTS_DIR/$TAG.$DATESTAMP.log
 printf "Logs written to %s\n" "$LOGFILE"
 
@@ -70,11 +72,11 @@ for DIR_or_file in $SQUAD_DIR $RESULTS_DIR $BERT_DIR/vocab.txt $BERT_DIR/bert_co
   fi
 done
 
-python run_squad.py \
+python3 run_squad.py \
 --vocab_file=$BERT_DIR/vocab.txt \
 --bert_config_file=$BERT_DIR/bert_config.json \
 --init_checkpoint=$init_checkpoint \
---do_predict=True \
+--do_predict=False \
 --predict_file=$SQUAD_DIR/dev-v${squad_version}.json \
 --predict_batch_size=$batch_size \
 --max_seq_length=$seq_length \
@@ -84,4 +86,4 @@ python run_squad.py \
 "$use_fp16" \
 $use_xla_tag --version_2_with_negative=${version_2_with_negative}
 
-python $SQUAD_DIR/evaluate-v${squad_version}.py $SQUAD_DIR/dev-v${squad_version}.json $RESULTS_DIR/predictions.json
+# python $SQUAD_DIR/evaluate-v${squad_version}.py $SQUAD_DIR/dev-v${squad_version}.json $RESULTS_DIR/predictions.json
