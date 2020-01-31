@@ -21,10 +21,37 @@ import numpy as np
 import tqdm
 
 # Set this to either 'label_ids' for Google bert or 'unique_ids' for JoC
+from TensorFlow.LanguageModeling.BERT.utils.create_squad_data import SquadExample
+
 label_id_key = "unique_ids"
 
 PendingResult = collections.namedtuple("PendingResult",
                                    ["async_id", "start_time", "inputs"])
+
+
+def convert_doc_tokens(paragraph_text):
+
+    """ Return the list of tokens from the doc text """
+    def is_whitespace(c):
+        if c == " " or c == "\t" or c == "\r" or c == "\n" or ord(c) == 0x202F:
+            return True
+        return False
+
+    doc_tokens = []
+    prev_is_whitespace = True
+    for c in paragraph_text:
+        if is_whitespace(c):
+            prev_is_whitespace = True
+        else:
+            if prev_is_whitespace:
+                doc_tokens.append(c)
+            else:
+                doc_tokens[-1] += c
+            prev_is_whitespace = False
+
+    return doc_tokens
+
+
 
 def batch(iterable, n=1):
     l = len(iterable)
@@ -57,10 +84,25 @@ def run_client():
     tokenizer = tokenization.FullTokenizer(vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
 
 
-    eval_examples = read_squad_examples(
-        input_file=FLAGS.predict_file, is_training=False,
-        version_2_with_negative=FLAGS.version_2_with_negative)
+    # -------------------------------------------------------------
+    # Creation of examples here
+    # -------------------------------------------------------------
+    paragraph = """The koala (Phascolarctos cinereus, or, inaccurately, koala bear[a]) is an arboreal herbivorous marsupial native to Australia. It is the only extant representative of the family Phascolarctidae and its closest living relatives are the wombats, which comprise the family Vombatidae. The koala is found in coastal areas of the mainland's eastern and southern regions, inhabiting Queensland, New South Wales, Victoria, and South Australia. It is easily recognisable by its stout, tailless body and large head with round, fluffy ears and large, spoon-shaped nose. The koala has a body length of 60–85 cm (24–33 in) and weighs 4–15 kg (9–33 lb). Fur colour ranges from silver grey to chocolate brown. Koalas from the northern populations are typically smaller and lighter in colour than their counterparts further south. These populations possibly are separate subspecies, but this is disputed.
+    """
+    question_text = "Who is Koala?"
+    examples = []
+    example = SquadExample(
+        qas_id=1,
+        question_text=question_text,
+        doc_tokens=convert_doc_tokens(paragraph_text=paragraph))
+    for iterator in range(30):
+        examples.append(example)
 
+    # Switching from predict_file read to api-read
+    # eval_examples = read_squad_examples(
+    #     input_file=FLAGS.predict_file, is_training=False,
+    #     version_2_with_negative=FLAGS.version_2_with_negative)
+    eval_examples = examples
     eval_features = []
 
     def append_feature(feature):
@@ -110,7 +152,7 @@ def run_client():
 
         if (len(outstanding) == 0):
             return
-        
+
         ready_id = ctx.get_ready_async_request(do_wait)
 
         if (ready_id is None):
@@ -201,15 +243,15 @@ def run_client():
     print("Latency Average (ms)  =", avg * 1000)
     print("-----------------------------")
 
+    # Update: Disabling the write to files
+    # output_prediction_file = os.path.join(FLAGS.output_dir, "predictions.json")
+    # output_nbest_file = os.path.join(FLAGS.output_dir, "nbest_predictions.json")
+    # output_null_log_odds_file = os.path.join(FLAGS.output_dir, "null_odds.json")
 
-    output_prediction_file = os.path.join(FLAGS.output_dir, "predictions.json")
-    output_nbest_file = os.path.join(FLAGS.output_dir, "nbest_predictions.json")
-    output_null_log_odds_file = os.path.join(FLAGS.output_dir, "null_odds.json")
-
-    write_predictions(eval_examples, eval_features, all_results,
-                      FLAGS.n_best_size, FLAGS.max_answer_length,
-                      FLAGS.do_lower_case, output_prediction_file,
-                      output_nbest_file, output_null_log_odds_file)
+    # write_predictions(eval_examples, eval_features, all_results,
+    #                   FLAGS.n_best_size, FLAGS.max_answer_length,
+    #                   FLAGS.do_lower_case, output_prediction_file,
+    #                   output_nbest_file, output_null_log_odds_file)
 
 
 

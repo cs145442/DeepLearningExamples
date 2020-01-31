@@ -447,6 +447,7 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
   scores_diff_json = collections.OrderedDict()
 
   for (example_index, example) in enumerate(all_examples):
+      # TODO: Remove loop
     features = example_index_to_features[example_index]
 
     prelim_predictions = []
@@ -459,6 +460,9 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
       result = unique_id_to_result[feature.unique_id]
       start_indexes = _get_best_indexes(result.start_logits, n_best_size)
       end_indexes = _get_best_indexes(result.end_logits, n_best_size)
+
+
+      # TODO: Check #1
       # if we could have irrelevant answers, get the min score of irrelevant
       if FLAGS.version_2_with_negative:
         feature_null_score = result.start_logits[0] + result.end_logits[0]
@@ -1054,7 +1058,7 @@ def main(_):
   if FLAGS.do_predict and master_process:
     eval_examples = read_squad_examples(
         input_file=FLAGS.predict_file, is_training=False,
-        version_2_with_negative=FLAGS.version_2_with_negative)
+        version_2_with_ngative=FLAGS.version_2_with_negative)
 
     # Perform evaluation on subset, useful for profiling
     if FLAGS.num_eval_iterations is not None:
