@@ -423,6 +423,8 @@ RawResult = collections.namedtuple("RawResult",
                                    ["unique_id", "start_logits", "end_logits"])
 
 
+
+
 def write_predictions(all_examples, all_features, all_results, n_best_size,
                       max_answer_length, do_lower_case, output_prediction_file,
                       output_nbest_file, output_null_log_odds_file):
@@ -926,20 +928,20 @@ def main(_):
   hvd_rank = 0
 
   config = tf.ConfigProto()
-  learning_rate = FLAGS.learning_rate
-  if FLAGS.horovod:
-
-      tf.logging.info("Multi-GPU training with TF Horovod")
-      tf.logging.info("hvd.size() = %d hvd.rank() = %d", hvd.size(), hvd.rank())
-      global_batch_size = FLAGS.train_batch_size * hvd.size() * FLAGS.num_accumulation_steps
-      learning_rate = learning_rate * hvd.size()
-      master_process = (hvd.rank() == 0)
-      hvd_rank = hvd.rank()
-      config.gpu_options.visible_device_list = str(hvd.local_rank())
-      if hvd.size() > 1:
-          training_hooks.append(hvd.BroadcastGlobalVariablesHook(0))
-  if FLAGS.use_xla:
-    config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
+  learning_rate = 2e-5 #FLAGS.learning_rate
+  # if FLAGS.horovod:
+  #
+  #     tf.logging.info("Multi-GPU training with TF Horovod")
+  #     tf.logging.info("hvd.size() = %d hvd.rank() = %d", hvd.size(), hvd.rank())
+  #     global_batch_size = FLAGS.train_batch_size * hvd.size() * FLAGS.num_accumulation_steps
+  #     learning_rate = learning_rate * hvd.size()
+  #     master_process = (hvd.rank() == 0)
+  #     hvd_rank = hvd.rank()
+  #     config.gpu_options.visible_device_list = str(hvd.local_rank())
+  #     if hvd.size() > 1:
+  #         training_hooks.append(hvd.BroadcastGlobalVariablesHook(0))
+  # if FLAGS.use_xla:
+  #   config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
   run_config = tf.estimator.RunConfig(
       model_dir=FLAGS.output_dir if master_process else None,
       session_config=config,
@@ -953,44 +955,44 @@ def main(_):
       tf.logging.info("**************************")
 
   train_examples = None
-  num_train_steps = None
-  num_warmup_steps = None
+  num_train_steps = 2795 # CHECK: make it to none
+  num_warmup_steps = 1000
   training_hooks.append(LogTrainRunHook(global_batch_size, hvd_rank, FLAGS.save_checkpoints_steps))
 
   # Prepare Training Data
-  if FLAGS.do_train:
-    train_examples = read_squad_examples(
-        input_file=FLAGS.train_file, is_training=True,
-        version_2_with_negative=FLAGS.version_2_with_negative)
-    num_train_steps = int(
-        len(train_examples) / global_batch_size * FLAGS.num_train_epochs)
-    num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
-
-    # Pre-shuffle the input to avoid having to make a very large shuffle
-    # buffer in in the `input_fn`.
-    rng = random.Random(12345)
-    rng.shuffle(train_examples)
-
-    start_index = 0 
-    end_index = len(train_examples)
-    tmp_filenames = [os.path.join(FLAGS.output_dir, "train.tf_record")]
-
-    if FLAGS.horovod:
-      tmp_filenames = [os.path.join(FLAGS.output_dir, "train.tf_record{}".format(i)) for i in range(hvd.size())]
-      num_examples_per_rank = len(train_examples) // hvd.size()
-      remainder = len(train_examples) % hvd.size()
-      if hvd.rank() < remainder:
-        start_index = hvd.rank() * (num_examples_per_rank+1)
-        end_index = start_index + num_examples_per_rank + 1
-      else:
-        start_index = hvd.rank() * num_examples_per_rank + remainder
-        end_index = start_index + (num_examples_per_rank)
+  # if FLAGS.do_train:
+  #   train_examples = read_squad_examples(
+  #       input_file=FLAGS.train_file, is_training=True,
+  #       version_2_with_negative=FLAGS.version_2_with_negative)
+  #   num_train_steps = int(
+  #       len(train_examples) / global_batch_size * FLAGS.num_train_epochs)
+  #   num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
+  #
+  #   # Pre-shuffle the input to avoid having to make a very large shuffle
+  #   # buffer in in the `input_fn`.
+  #   rng = random.Random(12345)
+  #   rng.shuffle(train_examples)
+  #
+  #   start_index = 0
+  #   end_index = len(train_examples)
+  #   tmp_filenames = [os.path.join(FLAGS.output_dir, "train.tf_record")]
+  #
+  #   if FLAGS.horovod:
+  #     tmp_filenames = [os.path.join(FLAGS.output_dir, "train.tf_record{}".format(i)) for i in range(hvd.size())]
+  #     num_examples_per_rank = len(train_examples) // hvd.size()
+  #     remainder = len(train_examples) % hvd.size()
+  #     if hvd.rank() < remainder:
+  #       start_index = hvd.rank() * (num_examples_per_rank+1)
+  #       end_index = start_index + num_examples_per_rank + 1
+  #     else:
+  #       start_index = hvd.rank() * num_examples_per_rank + remainder
+  #       end_index = start_index + (num_examples_per_rank)
 
 
   model_fn = model_fn_builder(
       bert_config=bert_config,
       init_checkpoint=FLAGS.init_checkpoint,
-      learning_rate=learning_rate,
+      learning_rate=learning_rate, #2e-5
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       hvd=None if not FLAGS.horovod else hvd,
@@ -1000,159 +1002,159 @@ def main(_):
       model_fn=model_fn,
       config=run_config)
 
-  if FLAGS.do_train:
-
-    # We write to a temporary file to avoid storing very large constant tensors
-    # in memory.
-    train_writer = FeatureWriter(
-        filename=tmp_filenames[hvd_rank],
-        is_training=True)
-    convert_examples_to_features(
-        examples=train_examples[start_index:end_index],
-        tokenizer=tokenizer,
-        max_seq_length=FLAGS.max_seq_length,
-        doc_stride=FLAGS.doc_stride,
-        max_query_length=FLAGS.max_query_length,
-        is_training=True,
-        output_fn=train_writer.process_feature,
-        verbose_logging=FLAGS.verbose_logging)
-    train_writer.close()
-
-    tf.logging.info("***** Running training *****")
-    tf.logging.info("  Num orig examples = %d", end_index - start_index)
-    tf.logging.info("  Num split examples = %d", train_writer.num_features)
-    tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
-    tf.logging.info("  Num steps = %d", num_train_steps)
-    tf.logging.info("  LR = %f", learning_rate)
-    del train_examples
-
-    train_input_fn = input_fn_builder(
-        input_file=tmp_filenames,
-        batch_size=FLAGS.train_batch_size,
-        seq_length=FLAGS.max_seq_length,
-        is_training=True,
-        drop_remainder=True,
-        hvd=None if not FLAGS.horovod else hvd)
-
-    train_start_time = time.time()
-    estimator.train(input_fn=train_input_fn, hooks=training_hooks, max_steps=num_train_steps)
-    train_time_elapsed = time.time() - train_start_time
-    train_time_wo_overhead = training_hooks[-1].total_time
-    avg_sentences_per_second = num_train_steps * global_batch_size * 1.0 / train_time_elapsed
-    ss_sentences_per_second = (num_train_steps - training_hooks[-1].skipped) * global_batch_size * 1.0 / train_time_wo_overhead
-
-    if master_process:
-        tf.logging.info("-----------------------------")
-        tf.logging.info("Total Training Time = %0.2f for Sentences = %d", train_time_elapsed,
-                        num_train_steps * global_batch_size)
-        tf.logging.info("Total Training Time W/O Overhead = %0.2f for Sentences = %d", train_time_wo_overhead,
-                        (num_train_steps - training_hooks[-1].skipped) * global_batch_size)
-        tf.logging.info("Throughput Average (sentences/sec) with overhead = %0.2f", avg_sentences_per_second)
-        tf.logging.info("Throughput Average (sentences/sec) = %0.2f", ss_sentences_per_second)
-        tf.logging.info("-----------------------------")
+  # if FLAGS.do_train:
+  #
+  #   # We write to a temporary file to avoid storing very large constant tensors
+  #   # in memory.
+  #   train_writer = FeatureWriter(
+  #       filename=tmp_filenames[hvd_rank],
+  #       is_training=True)
+  #   convert_examples_to_features(
+  #       examples=train_examples[start_index:end_index],
+  #       tokenizer=tokenizer,
+  #       max_seq_length=FLAGS.max_seq_length,
+  #       doc_stride=FLAGS.doc_stride,
+  #       max_query_length=FLAGS.max_query_length,
+  #       is_training=True,
+  #       output_fn=train_writer.process_feature,
+  #       verbose_logging=FLAGS.verbose_logging)
+  #   train_writer.close()
+  #
+  #   tf.logging.info("***** Running training *****")
+  #   tf.logging.info("  Num orig examples = %d", end_index - start_index)
+  #   tf.logging.info("  Num split examples = %d", train_writer.num_features)
+  #   tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
+  #   tf.logging.info("  Num steps = %d", num_train_steps)
+  #   tf.logging.info("  LR = %f", learning_rate)
+  #   del train_examples
+  #
+  #   train_input_fn = input_fn_builder(
+  #       input_file=tmp_filenames,
+  #       batch_size=FLAGS.train_batch_size,
+  #       seq_length=FLAGS.max_seq_length,
+  #       is_training=True,
+  #       drop_remainder=True,
+  #       hvd=None if not FLAGS.horovod else hvd)
+  #
+  #   train_start_time = time.time()
+  #   estimator.train(input_fn=train_input_fn, hooks=training_hooks, max_steps=num_train_steps)
+  #   train_time_elapsed = time.time() - train_start_time
+  #   train_time_wo_overhead = training_hooks[-1].total_time
+  #   avg_sentences_per_second = num_train_steps * global_batch_size * 1.0 / train_time_elapsed
+  #   ss_sentences_per_second = (num_train_steps - training_hooks[-1].skipped) * global_batch_size * 1.0 / train_time_wo_overhead
+  #
+  #   if master_process:
+  #       tf.logging.info("-----------------------------")
+  #       tf.logging.info("Total Training Time = %0.2f for Sentences = %d", train_time_elapsed,
+  #                       num_train_steps * global_batch_size)
+  #       tf.logging.info("Total Training Time W/O Overhead = %0.2f for Sentences = %d", train_time_wo_overhead,
+  #                       (num_train_steps - training_hooks[-1].skipped) * global_batch_size)
+  #       tf.logging.info("Throughput Average (sentences/sec) with overhead = %0.2f", avg_sentences_per_second)
+  #       tf.logging.info("Throughput Average (sentences/sec) = %0.2f", ss_sentences_per_second)
+  #       tf.logging.info("-----------------------------")
 
 
   if FLAGS.export_trtis and master_process:
     export_model(estimator, FLAGS.output_dir, FLAGS.init_checkpoint)
 
-  if FLAGS.do_predict and master_process:
-    eval_examples = read_squad_examples(
-        input_file=FLAGS.predict_file, is_training=False,
-        version_2_with_ngative=FLAGS.version_2_with_negative)
-
-    # Perform evaluation on subset, useful for profiling
-    if FLAGS.num_eval_iterations is not None:
-        eval_examples = eval_examples[:FLAGS.num_eval_iterations*FLAGS.predict_batch_size]
-
-    eval_writer = FeatureWriter(
-        filename=os.path.join(FLAGS.output_dir, "eval.tf_record"),
-        is_training=False)
-    eval_features = []
-
-    def append_feature(feature):
-      eval_features.append(feature)
-      eval_writer.process_feature(feature)
-
-    convert_examples_to_features(
-        examples=eval_examples,
-        tokenizer=tokenizer,
-        max_seq_length=FLAGS.max_seq_length,
-        doc_stride=FLAGS.doc_stride,
-        max_query_length=FLAGS.max_query_length,
-        is_training=False,
-        output_fn=append_feature,
-        verbose_logging=FLAGS.verbose_logging)
-    eval_writer.close()
-
-    tf.logging.info("***** Running predictions *****")
-    tf.logging.info("  Num orig examples = %d", len(eval_examples))
-    tf.logging.info("  Num split examples = %d", len(eval_features))
-    tf.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
-
-    predict_input_fn = input_fn_builder(
-        input_file=eval_writer.filename,
-        batch_size=FLAGS.predict_batch_size,
-        seq_length=FLAGS.max_seq_length,
-        is_training=False,
-        drop_remainder=False)
-
-    all_results = []
-    eval_hooks = [LogEvalRunHook(FLAGS.predict_batch_size)]
-    eval_start_time = time.time()
-    for result in estimator.predict(
-        predict_input_fn, yield_single_examples=True, hooks=eval_hooks):
-      if len(all_results) % 1000 == 0:
-        tf.logging.info("Processing example: %d" % (len(all_results)))
-      unique_id = int(result["unique_ids"])
-      start_logits = [float(x) for x in result["start_logits"].flat]
-      end_logits = [float(x) for x in result["end_logits"].flat]
-      all_results.append(
-          RawResult(
-              unique_id=unique_id,
-              start_logits=start_logits,
-              end_logits=end_logits))
-
-    eval_time_elapsed = time.time() - eval_start_time
-    eval_time_wo_overhead = eval_hooks[-1].total_time
-
-    time_list = eval_hooks[-1].time_list
-    time_list.sort()
-    num_sentences = (eval_hooks[-1].count - eval_hooks[-1].skipped) * FLAGS.predict_batch_size
-
-    avg = np.mean(time_list)
-    cf_50 = max(time_list[:int(len(time_list) * 0.50)])
-    cf_90 = max(time_list[:int(len(time_list) * 0.90)])
-    cf_95 = max(time_list[:int(len(time_list) * 0.95)])
-    cf_99 = max(time_list[:int(len(time_list) * 0.99)])
-    cf_100 = max(time_list[:int(len(time_list) * 1)])
-    ss_sentences_per_second = num_sentences * 1.0 / eval_time_wo_overhead
-
-    tf.logging.info("-----------------------------")
-    tf.logging.info("Total Inference Time = %0.2f for Sentences = %d", eval_time_elapsed,
-                    eval_hooks[-1].count * FLAGS.predict_batch_size)
-    tf.logging.info("Total Inference Time W/O Overhead = %0.2f for Sentences = %d", eval_time_wo_overhead,
-                    (eval_hooks[-1].count - eval_hooks[-1].skipped) * FLAGS.predict_batch_size)
-    tf.logging.info("Summary Inference Statistics")
-    tf.logging.info("Batch size = %d", FLAGS.predict_batch_size)
-    tf.logging.info("Sequence Length = %d", FLAGS.max_seq_length)
-    tf.logging.info("Precision = %s", "fp16" if FLAGS.use_fp16 else "fp32")
-    tf.logging.info("Latency Confidence Level 50 (ms) = %0.2f", cf_50 * 1000)
-    tf.logging.info("Latency Confidence Level 90 (ms) = %0.2f", cf_90 * 1000)
-    tf.logging.info("Latency Confidence Level 95 (ms) = %0.2f", cf_95 * 1000)
-    tf.logging.info("Latency Confidence Level 99 (ms) = %0.2f", cf_99 * 1000)
-    tf.logging.info("Latency Confidence Level 100 (ms) = %0.2f", cf_100 * 1000)
-    tf.logging.info("Latency Average (ms) = %0.2f", avg * 1000)
-    tf.logging.info("Throughput Average (sentences/sec) = %0.2f", ss_sentences_per_second)
-    tf.logging.info("-----------------------------")
-
-    output_prediction_file = os.path.join(FLAGS.output_dir, "predictions.json")
-    output_nbest_file = os.path.join(FLAGS.output_dir, "nbest_predictions.json")
-    output_null_log_odds_file = os.path.join(FLAGS.output_dir, "null_odds.json")
-
-    write_predictions(eval_examples, eval_features, all_results,
-                      FLAGS.n_best_size, FLAGS.max_answer_length,
-                      FLAGS.do_lower_case, output_prediction_file,
-                      output_nbest_file, output_null_log_odds_file)
+  # if FLAGS.do_predict and master_process:
+  #   eval_examples = read_squad_examples(
+  #       input_file=FLAGS.predict_file, is_training=False,
+  #       version_2_with_ngative=FLAGS.version_2_with_negative)
+  #
+  #   # Perform evaluation on subset, useful for profiling
+  #   if FLAGS.num_eval_iterations is not None:
+  #       eval_examples = eval_examples[:FLAGS.num_eval_iterations*FLAGS.predict_batch_size]
+  #
+  #   eval_writer = FeatureWriter(
+  #       filename=os.path.join(FLAGS.output_dir, "eval.tf_record"),
+  #       is_training=False)
+  #   eval_features = []
+  #
+  #   def append_feature(feature):
+  #     eval_features.append(feature)
+  #     eval_writer.process_feature(feature)
+  #
+  #   convert_examples_to_features(
+  #       examples=eval_examples,
+  #       tokenizer=tokenizer,
+  #       max_seq_length=FLAGS.max_seq_length,
+  #       doc_stride=FLAGS.doc_stride,
+  #       max_query_length=FLAGS.max_query_length,
+  #       is_training=False,
+  #       output_fn=append_feature,
+  #       verbose_logging=FLAGS.verbose_logging)
+  #   eval_writer.close()
+  #
+  #   tf.logging.info("***** Running predictions *****")
+  #   tf.logging.info("  Num orig examples = %d", len(eval_examples))
+  #   tf.logging.info("  Num split examples = %d", len(eval_features))
+  #   tf.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
+  #
+  #   predict_input_fn = input_fn_builder(
+  #       input_file=eval_writer.filename,
+  #       batch_size=FLAGS.predict_batch_size,
+  #       seq_length=FLAGS.max_seq_length,
+  #       is_training=False,
+  #       drop_remainder=False)
+  #
+  #   all_results = []
+  #   eval_hooks = [LogEvalRunHook(FLAGS.predict_batch_size)]
+  #   eval_start_time = time.time()
+  #   for result in estimator.predict(
+  #       predict_input_fn, yield_single_examples=True, hooks=eval_hooks):
+  #     if len(all_results) % 1000 == 0:
+  #       tf.logging.info("Processing example: %d" % (len(all_results)))
+  #     unique_id = int(result["unique_ids"])
+  #     start_logits = [float(x) for x in result["start_logits"].flat]
+  #     end_logits = [float(x) for x in result["end_logits"].flat]
+  #     all_results.append(
+  #         RawResult(
+  #             unique_id=unique_id,
+  #             start_logits=start_logits,
+  #             end_logits=end_logits))
+  #
+  #   eval_time_elapsed = time.time() - eval_start_time
+  #   eval_time_wo_overhead = eval_hooks[-1].total_time
+  #
+  #   time_list = eval_hooks[-1].time_list
+  #   time_list.sort()
+  #   num_sentences = (eval_hooks[-1].count - eval_hooks[-1].skipped) * FLAGS.predict_batch_size
+  #
+  #   avg = np.mean(time_list)
+  #   cf_50 = max(time_list[:int(len(time_list) * 0.50)])
+  #   cf_90 = max(time_list[:int(len(time_list) * 0.90)])
+  #   cf_95 = max(time_list[:int(len(time_list) * 0.95)])
+  #   cf_99 = max(time_list[:int(len(time_list) * 0.99)])
+  #   cf_100 = max(time_list[:int(len(time_list) * 1)])
+  #   ss_sentences_per_second = num_sentences * 1.0 / eval_time_wo_overhead
+  #
+  #   tf.logging.info("-----------------------------")
+  #   tf.logging.info("Total Inference Time = %0.2f for Sentences = %d", eval_time_elapsed,
+  #                   eval_hooks[-1].count * FLAGS.predict_batch_size)
+  #   tf.logging.info("Total Inference Time W/O Overhead = %0.2f for Sentences = %d", eval_time_wo_overhead,
+  #                   (eval_hooks[-1].count - eval_hooks[-1].skipped) * FLAGS.predict_batch_size)
+  #   tf.logging.info("Summary Inference Statistics")
+  #   tf.logging.info("Batch size = %d", FLAGS.predict_batch_size)
+  #   tf.logging.info("Sequence Length = %d", FLAGS.max_seq_length)
+  #   tf.logging.info("Precision = %s", "fp16" if FLAGS.use_fp16 else "fp32")
+  #   tf.logging.info("Latency Confidence Level 50 (ms) = %0.2f", cf_50 * 1000)
+  #   tf.logging.info("Latency Confidence Level 90 (ms) = %0.2f", cf_90 * 1000)
+  #   tf.logging.info("Latency Confidence Level 95 (ms) = %0.2f", cf_95 * 1000)
+  #   tf.logging.info("Latency Confidence Level 99 (ms) = %0.2f", cf_99 * 1000)
+  #   tf.logging.info("Latency Confidence Level 100 (ms) = %0.2f", cf_100 * 1000)
+  #   tf.logging.info("Latency Average (ms) = %0.2f", avg * 1000)
+  #   tf.logging.info("Throughput Average (sentences/sec) = %0.2f", ss_sentences_per_second)
+  #   tf.logging.info("-----------------------------")
+  #
+  #   output_prediction_file = os.path.join(FLAGS.output_dir, "predictions.json")
+  #   output_nbest_file = os.path.join(FLAGS.output_dir, "nbest_predictions.json")
+  #   output_null_log_odds_file = os.path.join(FLAGS.output_dir, "null_odds.json")
+  #
+  #   write_predictions(eval_examples, eval_features, all_results,
+  #                     FLAGS.n_best_size, FLAGS.max_answer_length,
+  #                     FLAGS.do_lower_case, output_prediction_file,
+  #                     output_nbest_file, output_null_log_odds_file)
 
 
 if __name__ == "__main__":
