@@ -928,6 +928,7 @@ def main(_):
   hvd_rank = 0
 
   config = tf.ConfigProto()
+
   learning_rate = 2e-5 #FLAGS.learning_rate
   # if FLAGS.horovod:
   #
@@ -955,7 +956,7 @@ def main(_):
       tf.logging.info("**************************")
 
   train_examples = None
-  num_train_steps = 2795 # CHECK: make it to none
+  num_train_steps = 1564 # CHECK: make it to none
   num_warmup_steps = 1000
   training_hooks.append(LogTrainRunHook(global_batch_size, hvd_rank, FLAGS.save_checkpoints_steps))
 
