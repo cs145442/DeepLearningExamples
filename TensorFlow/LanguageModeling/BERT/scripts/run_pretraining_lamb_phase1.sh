@@ -22,7 +22,7 @@ learning_rate_phase1=${4:-"7.5e-4"}
 learning_rate_phase2=${5:-"5e-4"}
 precision=${6:-"fp16"}
 use_xla=${7:-"true"}
-num_gpus=${8:-1}
+num_gpus=${8:-2}
 warmup_steps_phase1=${9:-"2000"}
 warmup_steps_phase2=${10:-"200"}
 train_steps=${11:-7820}
@@ -60,7 +60,7 @@ fi
 
 mpi=""
 if [ $num_gpus -gt 1 ] ; then
-   mpi="mpiexec --allow-run-as-root -np $num_gpus --bind-to socket"
+   mpi="mpiexec --allow-run-as-root -np $num_gpus --bind-to socket --oversubscribe"
 fi
 
 #PHASE 1
