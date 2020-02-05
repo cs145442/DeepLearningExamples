@@ -16,24 +16,24 @@
 export BERT_PREP_WORKING_DIR="${BERT_PREP_WORKING_DIR}"
 
 # Download
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset bookscorpus
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset wikicorpus_en
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset bookscorpus
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset wikicorpus_en
 
 python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset google_pretrained_weights  # Includes vocab
 
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset squad
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset "CoLA"
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset "MRPC"
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset "MNLI"
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset squad
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset "CoLA"
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset "MRPC"
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action download --dataset "MNLI"
 
 
 # Properly format the text files
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action text_formatting --dataset bookscorpus
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action text_formatting --dataset wikicorpus_en
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action text_formatting --dataset bookscorpus
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action text_formatting --dataset wikicorpus_en
 
 
 # Shard the text files (group wiki+books then shard)
-python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action sharding --dataset books_wiki_en_corpus
+#python3 ${BERT_PREP_WORKING_DIR}/bertPrep.py --action sharding --dataset books_wiki_en_corpus
 
 
 # Create TFRecord files Phase 1
