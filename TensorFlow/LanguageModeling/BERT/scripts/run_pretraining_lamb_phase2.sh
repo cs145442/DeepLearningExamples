@@ -62,7 +62,7 @@ fi
 
 mpi=""
 if [ $num_gpus -gt 1 ] ; then
-   mpi="mpiexec --allow-run-as-root -np $num_gpus --bind-to socket"
+   mpi="mpiexec --allow-run-as-root -np $num_gpus --bind-to socket --oversubscribe"
 fi
 
 #PHASE 1 Config
