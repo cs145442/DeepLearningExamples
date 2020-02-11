@@ -121,7 +121,7 @@ def run_client():
     protocol_str = 'grpc' # http or grpc
     url = FLAGS.trtis_server_url
     verbose = True
-    model_name = 'resnet50_netdef' #FLAGS.trtis_model_name
+    model_name = FLAGS.trtis_model_name
     model_version = FLAGS.trtis_model_version
     batch_size = FLAGS.predict_batch_size
 

@@ -29,8 +29,7 @@ trtis_engine_count=${13:-1}
 trtis_model_overwrite=${14:-"False"}
 
 if [ "$bert_model" = "large" ] ; then
-   # export BERT_DIR=data/download/google_pretrained_weights/uncased_L-24_H-1024_A-16
-    export BERT_DIR=/opt/luciapp/apps/service/DeepLearningExamples/TensorFlow/LanguageModeling/BERT/data/download/google_pretrained_weights/uncased_L-24_H-1024_A-16
+    export BERT_DIR=data/download/google_pretrained_weights/uncased_L-24_H-1024_A-16
 else
     export BERT_DIR=data/download/google_pretrained_weights/uncased_L-12_H-768_A-12
 fi
