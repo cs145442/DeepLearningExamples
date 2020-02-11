@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-init_checkpoint=${1:-"/results/models/bert_large_fp16_384_v1/model.ckpt-5474"}
+init_checkpoint=${1:-"results/models/model.ckpt-1564"}
 batch_size=${2:-"8"}
 precision=${3:-"fp16"}
 use_xla=${4:-"true"}
@@ -53,6 +53,3 @@ bash scripts/docker/launch.sh \
        --output_dir=/results \
        --export_trtis=True \
        ${additional_args}
-
-
-

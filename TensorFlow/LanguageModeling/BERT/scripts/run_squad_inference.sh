@@ -15,7 +15,7 @@
 
 echo "Container nvidia build = " $NVIDIA_BUILD_ID
 
-init_checkpoint=${1:-"/results/model.ckpt"}
+init_checkpoint=${1:-"results/models/model.ckpt-1564"}
 batch_size=${2:-"8"}
 precision=${3:-"fp16"}
 use_xla=${4:-"true"}
@@ -58,7 +58,7 @@ fi
 
 ckpt_str=${init_checkpoint//\//-}
 printf -v TAG "tf_bert_finetuning_squad_%s_inf_%s_gbs%d_ckpt_%s" "$bert_model" "$precision" $batch_size "$ckpt_str"
-DATESTAMP="RANDOM"
+DATESTAMP=`date +'%y%m%d%H%M%S'`
 #Edit to save logs & checkpoints in a different directory
 RESULTS_DIR=results
 LOGFILE=$RESULTS_DIR/$TAG.$DATESTAMP.log
@@ -72,11 +72,25 @@ for DIR_or_file in $SQUAD_DIR $RESULTS_DIR $BERT_DIR/vocab.txt $BERT_DIR/bert_co
   fi
 done
 
-python3 run_squad.py \
+# --------------------------
+# Add path to bert_engine
+# --------------------------
+#python run_squad_inference.py \
+#--vocab_file=$BERT_DIR/vocab.txt \
+#--predict_batch_size=$batch_size \
+#--max_seq_length=$seq_length \
+#--doc_stride=$doc_stride \
+#"$use_fp16" \
+#$use_xla_tag --version_2_with_negative=${version_2_with_negative}
+# --------------------------
+# TODO: Figure out this code above
+# --------------------------
+
+python run_squad.py \
 --vocab_file=$BERT_DIR/vocab.txt \
 --bert_config_file=$BERT_DIR/bert_config.json \
 --init_checkpoint=$init_checkpoint \
---do_predict=False \
+--do_predict=True \
 --predict_file=$SQUAD_DIR/dev-v${squad_version}.json \
 --predict_batch_size=$batch_size \
 --max_seq_length=$seq_length \

@@ -11,3 +11,25 @@ h5py
 html2text
 nltk
 progressbar
+
+# Found during the setup
+tensorflow==1.13.1
+# TODO: Complicated installation of horovod
+# sudo dpkg -i /opt/luciapp/data/reddie99/luciapp/build-essentials/nccl/nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
+# sudo apt install libnccl2 libnccl-dev
+# sudo apt install libnccl2=2.5.6-1+cuda10.1 libnccl-dev=2.5.6-1+cuda10.1
+# echo "Locate your nccl.h location"
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/include
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-10.1/targets/x86_64-linux/lib/
+# HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_GPU_BROADCAST=NCCL pip3 install --no-cache-dir horovod
+# sudo HOROVOD_NCCL_HOME=/usr/include HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_GPU_BROADCAST=NCCL pip3 install --no-cache-dir git+https://github.com/horovod/horovod
+# Build fails as mxnet library is not build properly or doesn't have required header files
+# Follow http://34.201.8.176/versions/julia/install/ubuntu_setup.html
+# Scripts available in wiki
+# export CMAKE_CUDA_COMPILER=/usr/local/cuda-10.1/bin/nvcc
+# export CUDACXX=/usr/local/cuda-10.1/bin/nvcc
+# TODO: Complete this setup requirements.txt
+
+
+# MXNET Build
+# sudo make -j$(nproc) USE_CUDA=1 USE_CUDNN=1 USE_CUDA_PATH=/usr/local/cuda/ USE_NCCL=1
